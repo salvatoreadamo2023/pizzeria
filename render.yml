@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: pizzeria
+    env: docker
+    plan: free
+    region: frankfurt
