@@ -1,14 +1,18 @@
-# Usa un'immagine Java ufficiale
 FROM openjdk:17-jdk-slim
 
-# Crea una cartella per l'app
 WORKDIR /app
 
-# Copia il file .jar nel container
-COPY target/pizzeria.jar app.jar
+# Installa Maven
+RUN apt-get update && apt-get install -y maven
 
-# Espone la porta 8080
+# Copia tutto il progetto
+COPY . .
+
+# Compila il progetto
+RUN mvn package
+
+# Espone la porta
 EXPOSE 8080
 
-# Comando per avviare l'app
-CMD ["java", "-jar", "app.jar"]
+# Avvia l'app
+CMD ["java", "-jar", "target/pizzeria-0.0.1-SNAPSHOT.jar"]
