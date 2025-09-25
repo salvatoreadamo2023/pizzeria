@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Comanda - Pizzeria</title>
+    <style>
+        body {
+            width: 80mm; /* larghezza tipica per stampante termica */
+            font-family: monospace;
+            font-size: 12px;
+            margin: 0;
+            padding: 0;
+        }
+        .header, .footer {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .line {
+            border-top: 1px dashed #000;
+            margin: 5px 0;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+        }
+        .item span {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h3>Pizzeria</h3>
+        <p>Comanda da Asporto</p>
+        <p th:text="${#dates.format(comanda.dataOra,'dd/MM/yyyy HH:mm')}"></p>
+        <div class="line"></div>
+    </div>
+
+    <div>
+        <p><strong>Cliente:</strong> <span th:text="${comanda.cliente}"></span></p>
+        <div class="line"></div>
+
+        <div th:each="item : ${comanda.items}" class="item">
+            <span th:text="${item.quantita} + ' x ' + ${item.prodotto.nome}"></span>
+            <span th:text="${#numbers.formatDecimal(item.prezzoUnitario * item.quantita,1,2)} + '€'"></span>
+        </div>
+
+        <div class="line"></div>
+        <p><strong>Totale:</strong> <span th:text="${#numbers.formatDecimal(comanda.totale,1,2)} + '€'"></span></p>
+    </div>
+
+    <div class="footer">
+        <p>Grazie e buon appetito!</p>
+    </div>
+</body>
+</html>

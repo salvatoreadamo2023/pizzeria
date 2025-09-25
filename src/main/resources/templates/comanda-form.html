@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${comanda.id != null} ? 'Modifica Comanda' : 'Nuova Comanda'">Nuova Comanda</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        .quantity-control { display: flex; align-items: center; gap: 5px; }
+        .quantity-control button { width: 35px; height: 35px; border-radius: 50%; border: none; background-color: #0d6efd; color: white; font-weight: bold; }
+        .quantity-control button:hover { background-color: #0b5ed7; }
+        .selected-product { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #ddd; }
+        #selectedProductsContainer { 
+            height: 320px; 
+            overflow-y:auto; 
+            border:1px solid #ced4da; 
+            padding:5px; 
+            background-color: #f8f9fa; 
+            border-radius:5px; 
+        }
+        #availableProducts { 
+            height: 275px; 
+        }
+        #availableProducts option { padding: 2px; }
+    </style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <div class="card p-4 shadow-sm">
+        <h2 th:text="${comanda.id != null} ? 'Modifica Comanda' : 'Nuova Comanda'">Nuova Comanda</h2>
+
+        <form th:action="@{/comande/nuova}" th:object="${comanda}" method="post">
+            <div class="mb-3">
+                <label class="form-label">Cliente</label>
+                <input type="text" th:field="*{cliente}" class="form-control" placeholder="Nome cliente" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Prodotti</label>
+                <div class="d-flex gap-3">
+                    <div class="flex-fill">
+                        <input type="text" id="searchProducts" class="form-control mb-2" placeholder="Cerca prodotto...">
+                        <select id="availableProducts" class="form-select" multiple>
+                            <option th:each="prodotto : ${prodotti}"
+                                    th:value="${prodotto.id}"
+                                    th:data-prezzo="${prodotto.prezzo}"
+                                    th:text="${prodotto.nome + ' - €' + #numbers.formatDecimal(prodotto.prezzo,1,2)}"></option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex flex-column justify-content-center gap-2">
+                        <button type="button" class="btn btn-primary btn-sm rounded-pill" onclick="addSelected()"> &gt;&gt; </button>
+                        <button type="button" class="btn btn-secondary btn-sm rounded-pill" onclick="removeSelected()"> &lt;&lt; </button>
+                    </div>
+
+                    <div class="flex-fill">
+                        <div id="selectedProductsContainer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Totale (€)</label>
+                <input type="number" step="0.01" th:field="*{totale}" class="form-control" placeholder="0.00" id="totale" required readonly>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Salva</button>
+            <a href="/comande" class="btn btn-secondary">Annulla</a>
+        </form>
+    </div>
+</div>
+
+<script>
+const available = document.getElementById('availableProducts');
+const selectedContainer = document.getElementById('selectedProductsContainer');
+const searchInput = document.getElementById('searchProducts');
+
+// Ricerca prodotti disponibili
+searchInput.addEventListener('input', () => {
+    const filter = searchInput.value.toLowerCase();
+    Array.from(available.options).forEach(opt => {
+        opt.style.display = opt.text.toLowerCase().includes(filter) ? 'block' : 'none';
+    });
+});
+
+
+// Cambia quantità
+function changeQuantity(id, delta) {
+    const qtyInput = document.getElementById('qty-' + id);
+    let val = parseInt(qtyInput.value) + delta;
+    if (val < 1) val = 1;
+    qtyInput.value = val;
+    document.getElementById('hidden-qty-' + id).value = val;
+    updateTotal();
+}
+
+function addSelected() {
+    Array.from(available.selectedOptions).forEach(opt => {
+        const id = opt.value;
+        const prezzo = parseFloat(opt.dataset.prezzo);
+        const nome = opt.text;
+
+        if (!document.getElementById('selected-' + id)) {
+            const index = selectedContainer.children.length;
+            const div = document.createElement('div');
+            div.classList.add('selected-product');
+            div.id = 'selected-' + id;
+            div.dataset.prezzo = prezzo;
+
+            div.innerHTML = `
+                <span>${nome}</span>
+                <div class="quantity-control">
+                    <button type="button" onclick="changeQuantity(${id}, -1)">-</button>
+                    <input type="number" id="qty-${id}" value="1" min="1" style="width:50px" onchange="updateTotal()">
+                    <button type="button" onclick="changeQuantity(${id}, 1)">+</button>
+                    <input type="hidden" name="items[${index}].prodottoId" value="${id}">
+                    <input type="hidden" name="items[${index}].quantita" id="hidden-qty-${id}" value="1">
+                </div>
+            `;
+            selectedContainer.appendChild(div);
+            opt.remove();
+            updateTotal();
+        }
+    });
+}
+
+function removeSelected() {
+    Array.from(selectedContainer.children).forEach((div, idx) => {
+        const inputHidden = div.querySelector('input[name^="items"][name$=".prodottoId"]');
+        if (inputHidden) {
+            const id = inputHidden.value;
+            const prezzo = parseFloat(div.dataset.prezzo);
+            const nome = div.querySelector('span').innerText;
+
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.dataset.prezzo = prezzo;
+            opt.text = nome;
+            available.appendChild(opt);
+            div.remove();
+            updateTotal();
+        }
+    });
+}
+
+function updateTotal() {
+    let totale = 0;
+    Array.from(selectedContainer.children).forEach((div, index) => {
+        const prezzo = parseFloat(div.dataset.prezzo);
+        const qtyInput = div.querySelector('input[type=number]');
+        const qty = parseInt(qtyInput.value);
+        totale += prezzo * qty;
+
+        const hiddenQty = div.querySelector('input[type=hidden][id^="hidden-qty-"]');
+        hiddenQty.value = qty;
+
+        // Aggiorna i nomi per Spring
+        const hiddenProdId = div.querySelector('input[name^="items"][name$=".prodottoId"]');
+        hiddenProdId.name = `items[${index}].prodottoId`;
+        hiddenQty.name = `items[${index}].quantita`;
+    });
+    document.getElementById('totale').value = totale.toFixed(2);
+}
+
+
+// Al submit del form, aggiorna sempre le quantità hidden
+document.querySelector('form').addEventListener('submit', function() {
+    updateTotal();
+});
+</script>
+</body>
+</html>

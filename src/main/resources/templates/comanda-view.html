@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Dettaglio Comanda</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <div class="card p-4">
+        <h2>Dettaglio Comanda</h2>
+        <p><strong>ID:</strong> <span th:text="${comanda.id}">1</span></p>
+        <p><strong>Cliente:</strong> <span th:text="${comanda.cliente}">Mario Rossi</span></p>
+        <p><strong>Data/Ora:</strong> 
+            <span th:text="${#temporals.format(comanda.dataOra, 'dd/MM/yyyy HH:mm')}">01/12/2023 12:00</span>
+        </p>
+        <p><strong>Note:</strong> <span th:text="${comanda.note}">Nessuna</span></p>
+        <p><strong>Prodotti:</strong></p>
+		<ul>
+		    <li th:each="item : ${comanda.items}"
+		        th:text="|${item.prodotto.nome} - ${item.quantita} x ${#numbers.formatDecimal(item.prezzoUnitario,1,2)} €|">
+		        Pizza - 1 x 5.00 €
+		    </li>
+		</ul>
+
+        <p><strong>Totale:</strong> <span th:text="${#numbers.formatDecimal(comanda.totale,1,2)} + ' €'">12.00 €</span></p>
+        <a href="/comande" class="btn btn-secondary">Torna indietro</a>
+        <button onclick="window.print()" class="btn btn-primary">Stampa</button>
+    </div>
+</div>
+</body>
+</html>
